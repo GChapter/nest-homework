@@ -27,8 +27,7 @@ export class RoleGuard implements CanActivate {
       throw new ForbiddenException('No token provided');
     }
     try {
-      const decoded = this.jwtService.verify(token);
-      request.user = decoded;
+      const roles = token;
       const permittedRoles = this.reflector.get(
         ROLES_KEY,
         context.getHandler(),
@@ -36,10 +35,9 @@ export class RoleGuard implements CanActivate {
       if (!permittedRoles) {
         return true;
       }
-      const user = request.user;
       if (
-        permittedRoles.some((role) => request.user.roles?.includes(role)) ||
-        user.roles?.includes('admin')
+        permittedRoles.some((role) => roles.includes(role)) ||
+        roles.includes('admin')
       )
         return true;
       throw new ForbiddenException('lack permission');
