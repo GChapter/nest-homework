@@ -36,8 +36,10 @@ export class RoleGuard implements CanActivate {
         return true;
       }
       if (
-        permittedRoles.some((role) => roles.includes(role)) ||
-        roles.includes('admin')
+        permittedRoles.some((role) =>
+          roles.toLowerCase().includes(role.toLowerCase()),
+        ) ||
+        roles.toLowerCase().includes('admin')
       )
         return true;
       throw new ForbiddenException('lack permission');

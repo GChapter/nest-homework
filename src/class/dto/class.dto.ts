@@ -15,7 +15,7 @@ export class UpdateClassDto {
   @IsNumber()
   private id: number;
 
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Class name is required' })
   @IsString()
   private className: string;
 

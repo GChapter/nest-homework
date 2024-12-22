@@ -42,6 +42,12 @@ export class StudentController {
     return this.studentService.findStudentByName(name);
   }
 
+  @Get('class/:className')
+  @Roles('teacher', 'principal')
+  findStudentByClassName(@Param('className') className: string) {
+    return this.studentService.findStudentByClassName(className);
+  }
+
   @Patch()
   @Roles('teacher')
   @UsePipes(UpdateStudentPipe)

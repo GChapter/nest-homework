@@ -3,7 +3,8 @@ import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 
 @Injectable()
 export class StudentService {
-  private students: { id: number; [key: string]: any }[] = [];
+  private students: { id: number; studentName: string; className: string }[] =
+    [];
   create(createStudentDto: CreateStudentDto) {
     const maxId =
       this.students.length > 0
@@ -11,7 +12,8 @@ export class StudentService {
         : 0;
     this.students.push({
       id: maxId + 1,
-      ...createStudentDto,
+      studentName: createStudentDto.getStudentName(),
+      className: createStudentDto.getClassName(),
     });
     return 'Created';
   }
@@ -34,13 +36,14 @@ export class StudentService {
     const studentIndex = this.findStudentIndexById(id);
     if (studentIndex !== -1) {
       this.students[studentIndex] = {
-        ...this.students[studentIndex],
-        ...updateStudentDto,
         id: this.students[studentIndex].id,
+        studentName: updateStudentDto.getStudentName(),
+        className: updateStudentDto.getClassName(),
       };
       return 'Updated';
+    } else {
+      return 'Student ID not found';
     }
-    return 'Student ID not found';
   }
 
   delete(id: number) {
@@ -63,6 +66,27 @@ export class StudentService {
   findStudentByName(studentName: string) {
     return this.students.find((student) =>
       student.studentName.toLowerCase().includes(studentName.toLowerCase()),
+    );
+  }
+
+  checkStudentNameExist(studentName: string, studentId: number) {
+    return this.students.some(
+      (student) =>
+        student.studentName.toLowerCase() === studentName.toLowerCase() &&
+        (student.id !== studentId || !studentId),
+    );
+  }
+
+  checkNoChangesDetected(
+    studentName: string,
+    className: string,
+    studentId: number,
+  ) {
+    const studentIndex = this.findStudentIndexById(studentId);
+    return (
+      !(
+        studentName && studentName !== this.students[studentIndex].studentName
+      ) && !(className && className !== this.students[studentIndex].className)
     );
   }
 

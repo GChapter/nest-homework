@@ -9,6 +9,14 @@ export class CreateStudentDto {
 
   @IsNotEmpty({ message: 'Class name is required' })
   private className: string;
+
+  getStudentName(): string {
+    return this.studentName;
+  }
+
+  getClassName(): string {
+    return this.className;
+  }
 }
 
 export class UpdateStudentDto {
@@ -29,5 +37,13 @@ export class UpdateStudentDto {
 
   getId(): number {
     return this.id;
+  }
+
+  getStudentName(): string {
+    return this.studentName;
+  }
+
+  getClassName(): string {
+    return this.className;
   }
 }

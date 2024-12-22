@@ -21,7 +21,9 @@ export class CreateStudentPipe
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     metadata: ArgumentMetadata,
   ) {
-    if (this.studentService.findStudentByName(value.studentName)) {
+    if (
+      this.studentService.checkStudentNameExist(value.studentName, undefined)
+    ) {
       throw new BadRequestException('Student already exists');
     }
     if (!this.classService.checkClassExist(value.className)) {
@@ -35,7 +37,8 @@ export class CreateStudentPipe
 
 @Injectable()
 export class UpdateStudentPipe
-  implements PipeTransform<{ studentName: string; className: string }>
+  implements
+    PipeTransform<{ id: number; studentName: string; className: string }>
 {
   constructor(
     private readonly studentService: StudentService,
@@ -43,7 +46,7 @@ export class UpdateStudentPipe
   ) {}
 
   transform(
-    value: { studentName: string; className: string },
+    value: { id: number; studentName: string; className: string },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     metadata: ArgumentMetadata,
   ) {
@@ -53,8 +56,17 @@ export class UpdateStudentPipe
       );
     }
     if (
+      this.studentService.checkNoChangesDetected(
+        value.studentName,
+        value.className,
+        value.id,
+      )
+    ) {
+      throw new BadRequestException('No changes detected');
+    }
+    if (
       value.studentName &&
-      this.studentService.findStudentByName(value.studentName)
+      this.studentService.checkStudentNameExist(value.studentName, value.id)
     ) {
       throw new BadRequestException('Student already exists');
     }
