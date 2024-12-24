@@ -16,17 +16,17 @@ export class CreateStudentPipe
     private readonly classService: ClassService,
   ) {}
 
-  transform(
+  async transform(
     value: { studentName: string; className: string },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     metadata: ArgumentMetadata,
   ) {
     if (
-      this.studentService.checkStudentNameExist(value.studentName, undefined)
+      await this.studentService.checkStudentNameExist(value.studentName, -1)
     ) {
       throw new BadRequestException('Student already exists');
     }
-    if (!this.classService.checkClassExist(value.className)) {
+    if (!(await this.classService.checkClassExist(value.className))) {
       throw new BadRequestException(
         "Class doesn't exist. Please create class first",
       );
@@ -45,7 +45,7 @@ export class UpdateStudentPipe
     private readonly classService: ClassService,
   ) {}
 
-  transform(
+  async transform(
     value: { id: number; studentName: string; className: string },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     metadata: ArgumentMetadata,
@@ -56,7 +56,7 @@ export class UpdateStudentPipe
       );
     }
     if (
-      this.studentService.checkNoChangesDetected(
+      await this.studentService.checkNoChangesDetected(
         value.studentName,
         value.className,
         value.id,
@@ -66,13 +66,16 @@ export class UpdateStudentPipe
     }
     if (
       value.studentName &&
-      this.studentService.checkStudentNameExist(value.studentName, value.id)
+      (await this.studentService.checkStudentNameExist(
+        value.studentName,
+        value.id,
+      ))
     ) {
       throw new BadRequestException('Student already exists');
     }
     if (
       value.className &&
-      !this.classService.checkClassExist(value.className)
+      !(await this.classService.checkClassExist(value.className))
     ) {
       throw new BadRequestException(
         "Class doesn't exist. Please create class first",

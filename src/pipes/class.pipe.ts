@@ -11,7 +11,7 @@ import { StudentService } from 'src/student/student.service';
 export class CreateClassPipe implements PipeTransform<{ className: string }> {
   constructor(private readonly classService: ClassService) {}
 
-  transform(
+  async transform(
     value: { className: string },
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     metadata: ArgumentMetadata,
@@ -19,7 +19,7 @@ export class CreateClassPipe implements PipeTransform<{ className: string }> {
     if (value.className === undefined) {
       throw new BadRequestException('Please provide className');
     }
-    if (this.classService.checkClassExist(value.className)) {
+    if (await this.classService.checkClassExist(value.className)) {
       throw new BadRequestException('Class name already exists');
     }
     return value;
@@ -33,16 +33,19 @@ export class DeleteClassPipe implements PipeTransform<number> {
     private readonly classService: ClassService,
   ) {}
 
-  transform(
+  async transform(
     id: number,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     metadata: ArgumentMetadata,
   ) {
-    if (
-      this.studentService.findStudentByClassName(
-        this.classService.findClassById(+id).className,
-      ).length > 0
-    ) {
+    const classObj = await this.classService.findOne(+id);
+    if (!classObj) {
+      throw new BadRequestException('Class ID not found');
+    }
+    const students = await this.studentService.findStudentByClassName(
+      classObj.className,
+    );
+    if (students.length > 0) {
       throw new BadRequestException('There are students in this class');
     }
     return id;

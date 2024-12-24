@@ -1,108 +1,114 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
+import { Student } from './entity/student.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Like, Not } from 'typeorm';
 
 @Injectable()
 export class StudentService {
-  private students: { id: number; studentName: string; className: string }[] =
-    [];
-  create(createStudentDto: CreateStudentDto) {
-    const maxId =
-      this.students.length > 0
-        ? Math.max(...this.students.map((student) => student.id))
-        : 0;
-    this.students.push({
-      id: maxId + 1,
+  constructor(
+    @InjectRepository(Student) private studentsRepository: Repository<Student>,
+  ) {}
+
+  async create(createStudentDto: CreateStudentDto) {
+    const newStudent = this.studentsRepository.create({
       studentName: createStudentDto.getStudentName(),
       className: createStudentDto.getClassName(),
     });
+    await this.studentsRepository.save(newStudent);
     return 'Created';
   }
 
   findAll() {
-    return this.students;
+    return this.studentsRepository.find();
   }
 
-  findOne(id: number) {
-    const student = this.findStudentById(id);
-    if (student) {
-      return student;
-    } else {
+  async findOne(id: number) {
+    const student = await this.studentsRepository.findOneBy({ id });
+    if (!student) {
+      throw new NotFoundException('Student ID not found');
+    }
+    return student;
+  }
+
+  async update(updateStudentDto: UpdateStudentDto) {
+    const studentUpdate = await this.studentsRepository.findOneBy({
+      id: updateStudentDto.getId(),
+    });
+    if (!studentUpdate) {
+      throw new NotFoundException('Student ID not found');
+    }
+    studentUpdate.studentName = updateStudentDto.getStudentName();
+    studentUpdate.className = updateStudentDto.getClassName();
+    await this.studentsRepository.save(studentUpdate);
+    return 'Updated';
+  }
+
+  async delete(id: number) {
+    const studentDelete = await this.studentsRepository.findOneBy({ id });
+    if (!studentDelete) {
       return 'Student ID not found';
     }
-  }
-
-  update(updateStudentDto: UpdateStudentDto) {
-    const id = updateStudentDto.getId();
-    const studentIndex = this.findStudentIndexById(id);
-    if (studentIndex !== -1) {
-      this.students[studentIndex] = {
-        id: this.students[studentIndex].id,
-        studentName: updateStudentDto.getStudentName(),
-        className: updateStudentDto.getClassName(),
-      };
-      return 'Updated';
-    } else {
-      return 'Student ID not found';
-    }
-  }
-
-  delete(id: number) {
-    const studentIndex = this.findStudentIndexById(id);
-    if (studentIndex !== -1) {
-      this.students.splice(studentIndex, 1);
-      return 'Deleted';
-    }
-    return 'Student ID not found';
-  }
-
-  findStudentById(id: number) {
-    return this.students.find((student) => student.id === id);
-  }
-
-  findStudentIndexById(id: number) {
-    return this.students.findIndex((student) => student.id === id);
+    await this.studentsRepository.remove(studentDelete);
+    return 'Deleted';
   }
 
   findStudentByName(studentName: string) {
-    return this.students.find((student) =>
-      student.studentName.toLowerCase().includes(studentName.toLowerCase()),
-    );
+    return this.studentsRepository.find({
+      where: { studentName: Like(`%${studentName}%`) },
+    });
   }
 
-  checkStudentNameExist(studentName: string, studentId: number) {
-    return this.students.some(
-      (student) =>
-        student.studentName.toLowerCase() === studentName.toLowerCase() &&
-        (student.id !== studentId || !studentId),
-    );
+  async checkStudentNameExist(
+    studentName: string,
+    studentId: number,
+  ): Promise<boolean> {
+    if (studentId == null) {
+      throw new BadRequestException('Invalid studentId');
+    }
+
+    const student = await this.studentsRepository.findOne({
+      where: { studentName, id: Not(studentId) },
+    });
+    console.log('Query result:', !!student);
+    return !!student;
   }
 
-  checkNoChangesDetected(
+  async checkNoChangesDetected(
     studentName: string,
     className: string,
     studentId: number,
   ) {
-    const studentIndex = this.findStudentIndexById(studentId);
+    const student = await this.studentsRepository.findOneBy({ id: studentId });
+    if (!student) {
+      return 'Student ID not found';
+    }
     return (
-      !(
-        studentName && studentName !== this.students[studentIndex].studentName
-      ) && !(className && className !== this.students[studentIndex].className)
+      studentName === student.studentName && className === student.className
     );
   }
 
   findStudentByClassName(className: string) {
-    return this.students.filter(
-      (student) => student.className.toLowerCase() === className.toLowerCase(),
-    );
+    return this.studentsRepository.find({
+      where: { className },
+    });
   }
 
-  updateStudentClassName(className: string, newClassName: string) {
-    const students = this.findStudentByClassName(className);
+  async updateStudentClassName(className: string, newClassName: string) {
+    const students = await this.studentsRepository.find({
+      where: { className },
+    });
     if (students.length > 0) {
       students.forEach((student) => {
         student.className = newClassName;
       });
+      await this.studentsRepository.save(students);
       return 'Updated';
     }
+    return 'No students found';
   }
 }

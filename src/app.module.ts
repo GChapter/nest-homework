@@ -5,15 +5,24 @@ import { StudentModule } from './student/student.module';
 import { APP_GUARD } from '@nestjs/core';
 import { RoleGuard } from './guard/role.guard';
 import { ClassModule } from './class/class.module';
-import { JwtModule } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Student } from './student/entity/student.entity';
+import { Class } from './class/entity/class.entity';
 
 @Module({
   imports: [
     StudentModule,
     ClassModule,
-    JwtModule.register({
-      secret: 'anhhenempickleballtavonnhaupickleball',
-      signOptions: { expiresIn: '1h' },
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: 'localhost',
+      port: 5431,
+      username: 'postgres',
+      password: 'password',
+      database: 'postgres',
+      synchronize: true,
+      entities: [Student, Class],
+      logging: true,
     }),
   ],
   controllers: [AppController],

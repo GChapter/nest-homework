@@ -1,70 +1,73 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
 import { StudentService } from 'src/student/student.service';
+import { Repository } from 'typeorm';
+import { Class } from './entity/class.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class ClassService {
-  private classes: { id: number; className: string }[] = [];
-  constructor(private readonly studentService: StudentService) {}
-  create(createClassDto: CreateClassDto) {
-    const maxId =
-      this.classes.length > 0
-        ? Math.max(...this.classes.map((classObj) => classObj.id))
-        : 0;
-    this.classes.push({
-      id: maxId + 1,
+  constructor(
+    private readonly studentService: StudentService,
+    @InjectRepository(Class) private classesRepository: Repository<Class>,
+  ) {}
+
+  async create(createClassDto: CreateClassDto) {
+    const newClass = this.classesRepository.create({
       className: createClassDto.getClassName(),
     });
+    await this.classesRepository.save(newClass);
     return 'Created';
   }
 
   findAll() {
-    return this.classes;
+    return this.classesRepository.find();
   }
 
-  findOne(id: number) {
-    if (this.findClassById(id)) {
-      return this.findClassById(id);
+  async findOne(id: number): Promise<Class> {
+    const classEntity = await this.classesRepository.findOneBy({ id });
+    if (!classEntity) {
+      throw new NotFoundException('Class ID not found');
     }
-    return 'Class ID not found';
+    return classEntity;
   }
 
-  update(updateClassDto: UpdateClassDto) {
-    const id = updateClassDto.getId();
-    const classIndex = this.findClassIndexById(id);
-    if (classIndex !== -1) {
-      this.studentService.updateStudentClassName(
-        this.classes[classIndex].className,
-        updateClassDto.getClassName(),
-      );
-      this.classes[classIndex] = {
-        id: updateClassDto.getId(),
-        className: updateClassDto.getClassName(),
-      };
-
-      return 'Updated';
+  async update(updateClassDto: UpdateClassDto) {
+    const classUpdate = await this.classesRepository.findOneBy({
+      id: updateClassDto.getId(),
+    });
+    if (!classUpdate) {
+      throw new NotFoundException('Class ID not found');
     }
+    this.studentService.updateStudentClassName(
+      classUpdate.className,
+      updateClassDto.getClassName(),
+    );
+    classUpdate.className = updateClassDto.getClassName();
+    await this.classesRepository.save(classUpdate);
+    return 'Updated';
   }
 
-  delete(id: number) {
-    const classIndex = this.findClassIndexById(id);
-    if (classIndex !== -1) {
-      this.classes.splice(classIndex, 1);
-      return 'Deleted';
+  async delete(id: number) {
+    const classDelete = await this.classesRepository.findOneBy({ id });
+    if (!classDelete) {
+      throw new NotFoundException('Class ID not found');
     }
+    await this.classesRepository.remove(classDelete);
+    return 'Deleted';
   }
 
-  findClassById(id: number) {
-    console.log(typeof id);
-    console.log(this.classes);
-    return this.classes.find((classObj) => classObj.id === id);
+  async findClassByName(className: string) {
+    const classObj = await this.classesRepository.findOneBy({ className });
+    if (!classObj) {
+      throw new NotFoundException('Class name not found');
+    }
+    return classObj;
   }
 
-  findClassIndexById(id: number) {
-    return this.classes.findIndex((classObj) => classObj.id === id);
-  }
-
-  checkClassExist(className: string) {
-    return this.classes.some((classObj) => classObj.className === className);
+  async checkClassExist(className: string) {
+    const classObj = await this.classesRepository.findOneBy({ className });
+    console.log('classObj', classObj);
+    return !!classObj;
   }
 }
