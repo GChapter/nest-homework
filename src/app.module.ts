@@ -8,19 +8,21 @@ import { ClassModule } from './class/class.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Student } from './student/entity/student.entity';
 import { Class } from './class/entity/class.entity';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot(),
     StudentModule,
     ClassModule,
     TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5431,
-      username: 'postgres',
-      password: 'password',
-      database: 'postgres',
-      synchronize: true,
+      type: process.env.DB_TYPE as any,
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT, 10),
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      synchronize: false,
       entities: [Student, Class],
       logging: true,
     }),
