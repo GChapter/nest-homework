@@ -1,8 +1,12 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { Field, InputType } from '@nestjs/graphql';
+import { IsNotEmpty, IsNumber, IsString, MaxLength } from 'class-validator';
 
+@InputType()
 export class CreateClassDto {
+  @Field()
   @IsNotEmpty({ message: 'Class name is required' })
   @IsString()
+  @MaxLength(50, { message: 'Class name is too long' })
   private className: string;
 
   public getClassName(): string {
@@ -10,13 +14,17 @@ export class CreateClassDto {
   }
 }
 
+@InputType()
 export class UpdateClassDto {
+  @Field()
   @IsNotEmpty()
   @IsNumber()
   private id: number;
 
+  @Field()
   @IsNotEmpty({ message: 'Class name is required' })
   @IsString()
+  @MaxLength(50, { message: 'Class name is too long' })
   private className: string;
 
   public getId(): number {

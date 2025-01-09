@@ -17,6 +17,10 @@ export class RoleGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const permittedRoles = this.reflector.get(ROLES_KEY, context.getHandler());
+    if (!permittedRoles) {
+      return true;
+    }
     const request = context.switchToHttp().getRequest<CustomRequest>();
     const token = request.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -24,18 +28,11 @@ export class RoleGuard implements CanActivate {
     }
     try {
       const roles = token;
-      const permittedRoles = this.reflector.get(
-        ROLES_KEY,
-        context.getHandler(),
-      );
-      if (!permittedRoles) {
-        return true;
-      }
       if (
-        permittedRoles.some((role) =>
-          roles.toLowerCase().includes(role.toLowerCase()),
+        permittedRoles.some(
+          (role) => roles.toLowerCase() === role.toLowerCase(),
         ) ||
-        roles.toLowerCase().includes('admin')
+        roles.toLowerCase() === 'admin'
       )
         return true;
       throw new ForbiddenException('lack permission');

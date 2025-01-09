@@ -7,56 +7,54 @@ import {
   Param,
   Delete,
   UsePipes,
+  UseGuards,
 } from '@nestjs/common';
 import { StudentService } from './student.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { Roles } from 'src/decorators/role.decorator';
-import { CreateStudentPipe, UpdateStudentPipe } from 'src/pipes/student.pipe';
+import { RoleGuard } from 'src/guard/role.guard';
+import { UpdateStudentPipe } from 'src/pipes/student.pipe';
 
 @Controller('student')
+@UseGuards(RoleGuard)
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
   @Post()
-  @Roles('teacher')
-  @UsePipes(CreateStudentPipe)
+  @Roles('Teacher')
   create(@Body() createStudentDto: CreateStudentDto) {
     return this.studentService.create(createStudentDto);
   }
 
   @Get()
-  @Roles('teacher', 'principal')
   findAll() {
     return this.studentService.findAll();
   }
 
   @Get('id/:id')
-  @Roles('teacher', 'principal')
   findOne(@Param('id') id: string) {
     return this.studentService.findOne(+id);
   }
 
   @Get('name/:name')
-  @Roles('teacher', 'principal')
   findStudentByName(@Param('name') name: string) {
     return this.studentService.findStudentByName(name);
   }
 
   @Get('class/:className')
-  @Roles('teacher', 'principal')
   findStudentByClassName(@Param('className') className: string) {
     return this.studentService.findStudentByClassName(className);
   }
 
   @Patch()
-  @Roles('teacher')
+  @Roles('Teacher')
   @UsePipes(UpdateStudentPipe)
   update(@Body() updateStudentDto: UpdateStudentDto) {
     return this.studentService.update(updateStudentDto);
   }
 
   @Delete(':id')
-  @Roles('teacher')
+  @Roles('Teacher')
   remove(@Param('id') id: string) {
     return this.studentService.delete(+id);
   }

@@ -7,28 +7,45 @@ import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { Student } from './entity/student.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, Not } from 'typeorm';
+import { Class } from 'src/class/entity/class.entity';
 
 @Injectable()
 export class StudentService {
   constructor(
     @InjectRepository(Student) private studentsRepository: Repository<Student>,
+    @InjectRepository(Class) private classesRepository: Repository<Class>,
   ) {}
 
   async create(createStudentDto: CreateStudentDto) {
+    const student = await this.studentsRepository.findOneBy({
+      studentName: createStudentDto.getStudentName(),
+    });
+    if (student) {
+      throw new BadRequestException('Student name already exists');
+    }
+    const classObj = await this.classesRepository.findOneBy({
+      className: createStudentDto.getClassName(),
+    });
+    if (!classObj) {
+      throw new BadRequestException('Class not found');
+    }
     const newStudent = this.studentsRepository.create({
       studentName: createStudentDto.getStudentName(),
-      className: createStudentDto.getClassName(),
+      class: classObj,
     });
     await this.studentsRepository.save(newStudent);
     return 'Created';
   }
 
   findAll() {
-    return this.studentsRepository.find();
+    return this.studentsRepository.find({ relations: ['class'] });
   }
 
   async findOne(id: number) {
-    const student = await this.studentsRepository.findOneBy({ id });
+    const student = await this.studentsRepository.findOne({
+      where: { id },
+      relations: ['class'],
+    });
     if (!student) {
       throw new NotFoundException('Student ID not found');
     }
@@ -41,9 +58,34 @@ export class StudentService {
     });
     if (!studentUpdate) {
       throw new NotFoundException('Student ID not found');
+    } else if (
+      updateStudentDto.getStudentName() === studentUpdate.studentName &&
+      updateStudentDto.getClassName() === studentUpdate.class.className
+    ) {
+      return 'No changes detected';
     }
-    studentUpdate.studentName = updateStudentDto.getStudentName();
-    studentUpdate.className = updateStudentDto.getClassName();
+    if (updateStudentDto.getStudentName()) {
+      if (
+        await this.checkStudentNameExist(
+          updateStudentDto.getStudentName(),
+          studentUpdate.id,
+        )
+      ) {
+        throw new BadRequestException('Student name already exists');
+      }
+      studentUpdate.studentName = updateStudentDto.getStudentName();
+    }
+
+    if (updateStudentDto.getClassName()) {
+      const classObj = await this.classesRepository.findOneBy({
+        className: updateStudentDto.getClassName(),
+      });
+      if (!classObj) {
+        throw new BadRequestException('Class not found');
+      }
+      studentUpdate.class = classObj;
+    }
+
     await this.studentsRepository.save(studentUpdate);
     return 'Updated';
   }
@@ -58,6 +100,7 @@ export class StudentService {
   }
 
   findStudentByName(studentName: string) {
+    // Lowercase
     return this.studentsRepository.find({
       where: { studentName: Like(`%${studentName}%`) },
     });
@@ -74,7 +117,6 @@ export class StudentService {
     const student = await this.studentsRepository.findOne({
       where: { studentName, id: Not(studentId) },
     });
-    console.log('Query result:', !!student);
     return !!student;
   }
 
@@ -88,27 +130,25 @@ export class StudentService {
       return 'Student ID not found';
     }
     return (
-      studentName === student.studentName && className === student.className
+      studentName === student.studentName &&
+      className === student.class.className
     );
   }
 
   findStudentByClassName(className: string) {
     return this.studentsRepository.find({
-      where: { className },
+      where: { class: { className } },
+      relations: ['class'],
     });
   }
 
   async updateStudentClassName(className: string, newClassName: string) {
-    const students = await this.studentsRepository.find({
+    const classObj = await this.classesRepository.findOne({
       where: { className },
+      relations: ['students'],
     });
-    if (students.length > 0) {
-      students.forEach((student) => {
-        student.className = newClassName;
-      });
-      await this.studentsRepository.save(students);
-      return 'Updated';
-    }
-    return 'No students found';
+    classObj.students.forEach((student) => {
+      student.class.className = newClassName;
+    });
   }
 }

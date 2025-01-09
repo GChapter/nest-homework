@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
 import { StudentService } from 'src/student/student.service';
 import { Repository } from 'typeorm';
@@ -32,6 +36,7 @@ export class ClassService {
     return classEntity;
   }
 
+  // Nên dùng transaction để đảm bảo mọi update sẽ đồng bộ
   async update(updateClassDto: UpdateClassDto) {
     const classUpdate = await this.classesRepository.findOneBy({
       id: updateClassDto.getId(),
@@ -52,6 +57,9 @@ export class ClassService {
     const classDelete = await this.classesRepository.findOneBy({ id });
     if (!classDelete) {
       throw new NotFoundException('Class ID not found');
+    }
+    if (this.studentService.findStudentByClassName(classDelete.className)) {
+      throw new BadRequestException('Class has students');
     }
     await this.classesRepository.remove(classDelete);
     return 'Deleted';

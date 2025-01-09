@@ -7,44 +7,44 @@ import {
   Param,
   Delete,
   UsePipes,
+  UseGuards,
 } from '@nestjs/common';
 import { ClassService } from './class.service';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
 import { Roles } from 'src/decorators/role.decorator';
-import { CreateClassPipe, DeleteClassPipe } from 'src/pipes/class.pipe';
+import { RoleGuard } from 'src/guard/role.guard';
+import { CreateClassPipe } from 'src/pipes/class.pipe';
 
 @Controller('class')
+@UseGuards(RoleGuard)
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
 
   @Post()
-  @Roles('principal')
+  @Roles('Principal')
   @UsePipes(CreateClassPipe)
   create(@Body() createClassDto: CreateClassDto) {
     return this.classService.create(createClassDto);
   }
 
   @Get()
-  @Roles('principal', 'teacher')
   findAll() {
     return this.classService.findAll();
   }
 
   @Get('id/:id')
-  @Roles('principal', 'teacher')
   findOne(@Param('id') id: string) {
     return this.classService.findOne(+id);
   }
 
   @Patch()
-  @Roles('principal')
+  @Roles('Principal')
   update(@Body() updateClassDto: UpdateClassDto) {
     return this.classService.update(updateClassDto);
   }
 
   @Delete(':id')
-  @Roles('principal')
-  @UsePipes(DeleteClassPipe)
+  @Roles('Principal')
   remove(@Param('id') id: string) {
     return this.classService.delete(+id);
   }
